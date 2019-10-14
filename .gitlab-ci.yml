@@ -211,7 +211,7 @@ test-create-application-secret:
     - start_k3s
     - auto-deploy create_application_secret "stable"
     - kubectl get secrets -n $KUBE_NAMESPACE
-    - kubectl get secrets production-secret -n $KUBE_NAMESPACE
+    - kubectl get secret production-secret -n $KUBE_NAMESPACE
 
 release-tag:
   stage: release

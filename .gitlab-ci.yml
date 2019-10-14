@@ -150,7 +150,7 @@ test-initialize-tiller:
     - semantic-release $DRY_RUN_OPT -b $CI_COMMIT_REF_NAME
   only:
     variables:
-      - $CI_API_V4_URL == "https://gitlab.apptrium.io/api/v4"
+      - $CI_API_V4_URL == "https://gitlab.ubiquitous.no/api/v4"
 
 test-create-secret-public-project:
   <<: *test-job
@@ -215,19 +215,16 @@ test-create-application-secret:
 
 release-tag:
   stage: release
-  image: docker:stable
-  services:
-    - docker:stable-dind
+  image: 
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
   script:
-    - 'echo ${CI_JOB_TOKEN} | docker login --password-stdin -u $CI_REGISTRY_USER $CI_REGISTRY'
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - export ci_image="${CI_REGISTRY_IMAGE}"
     - export ci_image_tag=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
     - echo "Using tag $ci_image_tag for image"
-    - docker pull "$BUILD_IMAGE_NAME"
-    - docker tag "$BUILD_IMAGE_NAME" $ci_image:latest
-    - docker tag "$BUILD_IMAGE_NAME" $ci_image:$ci_image_tag
-    - docker push $ci_image:latest
-    - docker push $ci_image:$ci_image_tag
+    - echo "FROM $BUILD_IMAGE_NAME" | /kaniko/executor --dockerfile /dev/stdin --destination $ci_image:latest --destination $ci_image:$ci_image_tag
   only:
     - tags
 

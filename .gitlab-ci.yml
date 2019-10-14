@@ -4,8 +4,6 @@ variables:
 
   BUILD_IMAGE_NAME: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
 
-image: docker:18.09.7
-
 stages:
   - build
   - test
@@ -13,15 +11,12 @@ stages:
 
 build:
   stage: build
-  image: docker:stable
-  services:
-    - docker:18.09.7-dind
+  image: 
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
   before_script:
-    - env
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-  script:
-    - docker build --build-arg "HELM_VERSION=$HELM_VERSION" --build-arg "KUBERNETES_VERSION=$KUBERNETES_VERSION" --tag "$BUILD_IMAGE_NAME" .
-    - docker push "$BUILD_IMAGE_NAME"
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context=. --dockerfile=Dockerfile --build-arg="HELM_VERSION=$HELM_VERSION" --build-arg="KUBERNETES_VERSION=$KUBERNETES_VERSION" --destination=$BUILD_IMAGE_NAME
 
 .test-job: &test-job
   stage: test

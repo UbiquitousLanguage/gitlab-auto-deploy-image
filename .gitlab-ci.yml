@@ -14,7 +14,7 @@ build:
   image: 
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  before_script:
+  script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context=. --dockerfile=Dockerfile --build-arg="HELM_VERSION=$HELM_VERSION" --build-arg="KUBERNETES_VERSION=$KUBERNETES_VERSION" --destination=$BUILD_IMAGE_NAME
 

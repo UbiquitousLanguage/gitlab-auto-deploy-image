@@ -3,8 +3,6 @@
 [[ "$TRACE" ]] && set -x
 
 export RELEASE_NAME=${HELM_RELEASE_NAME:-$CI_ENVIRONMENT_SLUG}
-export TILLER_NAMESPACE=$KUBE_NAMESPACE
-export HELM_HOST="localhost:44134"
 
 function check_kube_domain() {
   if [[ -z "$KUBE_INGRESS_BASE_DOMAIN" ]]; then
@@ -48,25 +46,6 @@ function download_chart() {
 
 function ensure_namespace() {
   kubectl get namespace "$KUBE_NAMESPACE" || kubectl create namespace "$KUBE_NAMESPACE"
-}
-
-function initialize_tiller() {
-  return
-
-  echo "Checking Tiller..."
-
-  if [[ -n "$AUTO_DEVOPS_DEPLOY_DEBUG" ]]; then
-    nohup tiller -listen "${HELM_HOST}" >tiller.log 2>&1 &
-  else
-    nohup tiller -listen "${HELM_HOST}" >/dev/null 2>&1 &
-  fi
-  echo "Tiller is listening on ${HELM_HOST}"
-
-  if ! helm version --debug; then
-    echo "Failed to init Tiller."
-    return 1
-  fi
-  echo ""
 }
 
 function write_environment_values_file() {
@@ -371,7 +350,6 @@ case $option in
   check_kube_domain) check_kube_domain ;;
   download_chart) download_chart ;;
   ensure_namespace) ensure_namespace ;;
-  initialize_tiller) initialize_tiller ;;
   create_secret) create_secret ;;
   persist_environment_url) persist_environment_url ;;
   deploy) deploy "${@:2}" ;;

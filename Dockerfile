@@ -5,22 +5,18 @@ RUN apk add --no-cache curl
 
 FROM build-base AS kubectl
 ARG KUBECTL_VERSION
-ARG KUBECTL_CHECKSUM
 ARG SOURCE=https://dl.k8s.io/v$KUBECTL_VERSION/kubernetes-client-linux-amd64.tar.gz
 ARG TARGET=/kubernetes-client.tar.gz
 RUN curl -fLSs "$SOURCE" -o "$TARGET"
 RUN sha512sum "$TARGET"
-RUN echo "$KUBECTL_CHECKSUM *$TARGET" | sha512sum -c -
 RUN tar -xvf "$TARGET" -C /
 
 FROM build-base AS helm
 ARG HELM_VERSION
-ARG HELM_CHECKSUM
 ARG SOURCE=https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz
 ARG TARGET=/helm.tar.gz
 RUN curl -fLSs "$SOURCE" -o "$TARGET"
 RUN sha256sum "$TARGET"
-RUN echo "$HELM_CHECKSUM *$TARGET" | sha256sum -c -
 RUN mkdir -p /helm
 RUN tar -xvf "$TARGET" -C /helm
 

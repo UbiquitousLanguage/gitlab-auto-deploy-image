@@ -139,7 +139,7 @@ function deploy() {
 
   local secret_name
   if [[ "$CI_PROJECT_VISIBILITY" != "public" ]]; then
-    secret_name="gitlab-registry-${CI_PROJECT_PATH_SLUG}"
+    secret_name="gitlab-registry"
   else
     secret_name=''
   fi

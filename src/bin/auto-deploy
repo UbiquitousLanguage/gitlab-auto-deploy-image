@@ -51,6 +51,8 @@ function ensure_namespace() {
 }
 
 function initialize_tiller() {
+  return
+
   echo "Checking Tiller..."
 
   if [[ -n "$AUTO_DEVOPS_DEPLOY_DEBUG" ]]; then

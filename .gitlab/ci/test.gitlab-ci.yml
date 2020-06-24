@@ -188,6 +188,31 @@ test-persist-environment-url:
     - auto-deploy persist_environment_url
     - grep review-app.example.com environment_url.txt
 
+test-deploy:
+  <<: *test-job
+  variables: &deploy-variables
+    CI_APPLICATION_REPOSITORY: "registry.gitlab.com/gitlab-org/cluster-integration/auto-deploy-image/auto-build-image-with-psql"
+    CI_APPLICATION_TAG: "5d248f6fa69a"
+    CI_ENVIRONMENT_SLUG: production
+    CI_ENVIRONMENT_URL: example.com
+    CI_PROJECT_PATH_SLUG: "gitlab-org/cluster-integration/auto-build-image"
+    CI_PROJECT_VISIBILITY: public
+    KUBE_NAMESPACE: default
+    KUBE_INGRESS_BASE_DOMAIN: example.com
+    ROLLOUT_RESOURCE_TYPE: deployment
+    POSTGRES_USER: user
+    POSTGRES_PASSWORD: testing-password
+    POSTGRES_ENABLED: "true"
+    POSTGRES_DB: $CI_ENVIRONMENT_SLUG
+    HELM_HOST: "localhost:44134"
+  script:
+    - auto-deploy initialize_tiller
+    - auto-deploy download_chart
+    - auto-deploy deploy
+    - helm get production
+    - helm get values production --output json | grep "postgres://user:testing-password@production-postgresql:5432/production"
+    - ./test/verify-deployment-database production postgresql
+
 test-deploy-atomic:
   extends: test-deploy
   variables:

@@ -26,14 +26,14 @@ ENV PATH=$PATH:/stage/usr/bin
 COPY --from=kubectl /kubernetes/client/bin/kubectl ./usr/bin/
 COPY --from=helm /helm/linux-amd64/helm ./usr/bin/
 
-FROM base as ready
-RUN apk add --no-cache ca-certificates git
-COPY --from=stage /stage/ /
 
-FROM ready
+FROM base
 
 # https://github.com/sgerrand/alpine-pkg-glibc
 ARG GLIBC_VERSION
+
+RUN apk add --no-cache ca-certificates git
+COPY --from=stage /stage/ /
 
 COPY src/ build/
 

@@ -9,7 +9,7 @@ variables:
 
 stages:
   - build
-  - test
+#  - test
   - release
 
 include:

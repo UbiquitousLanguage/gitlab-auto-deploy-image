@@ -29,7 +29,6 @@ function download_chart() {
     auto_chart_name="chart"
   fi
 
-  helm init --client-only
   # shellcheck disable=SC2086 # double quote variables to prevent globbing
   # shellcheck disable=SC2140 # ambiguous quoting warning
   helm repo add ${AUTO_DEVOPS_CHART_REPOSITORY_NAME:-gitlab} ${AUTO_DEVOPS_CHART_REPOSITORY:-https://charts.gitlab.io} ${AUTO_DEVOPS_CHART_REPOSITORY_USERNAME:+"--username" "$AUTO_DEVOPS_CHART_REPOSITORY_USERNAME"} ${AUTO_DEVOPS_CHART_REPOSITORY_PASSWORD:+"--password" "$AUTO_DEVOPS_CHART_REPOSITORY_PASSWORD"}

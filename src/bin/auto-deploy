@@ -159,6 +159,7 @@ function deploy() {
   echo "Deploying new $track release..."
   # shellcheck disable=SC2086 # HELM_UPGRADE_EXTRA_ARGS -- double quote variables to prevent globbing
   helm upgrade --install \
+    --cleanup-on-fail \
     --wait \
     --set service.enabled="$service_enabled" \
     --set gitlab.app="$CI_PROJECT_PATH_SLUG" \

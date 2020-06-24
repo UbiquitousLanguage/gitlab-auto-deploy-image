@@ -14,7 +14,7 @@ RUN apk add --no-cache openssl curl tar gzip bash jq \
   && curl -sSL -O https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk \
   && apk add glibc-${GLIBC_VERSION}.apk \
   && apk add ruby jq \
-  && rm glibc-${GLIBC_VERSION}.apk
+  && rm glibc-${GLIBC_VERSION}.apk \
   && curl -sL https://sentry.io/get-cli/ | bash
 
 RUN ln -s /build/bin/* /usr/local/bin/

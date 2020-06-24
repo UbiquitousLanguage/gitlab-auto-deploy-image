@@ -5,4 +5,4 @@ build:
     entrypoint: [""]
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context=. --dockerfile=Dockerfile --build-arg="HELM_VERSION=$HELM_VERSION" --build-arg="KUBERNETES_VERSION=$KUBERNETES_VERSION" --build-arg "GLIBC_VERSION=$GLIBC_VERSION" --destination=$BUILD_IMAGE_NAME
+    - /kaniko/executor --context=. --dockerfile=Dockerfile --build-arg="HELM_VERSION=$HELM_VERSION" --build-arg="KUBECTL_VERSION=$KUBECTL_VERSION" --build-arg "GLIBC_VERSION=$GLIBC_VERSION" --destination=$BUILD_IMAGE_NAME

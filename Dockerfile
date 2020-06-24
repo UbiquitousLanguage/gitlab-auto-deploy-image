@@ -13,7 +13,7 @@ RUN tar -xvf "$TARGET" -C /
 
 FROM build-base AS helm
 ARG HELM_VERSION
-ARG SOURCE=https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz
+ARG SOURCE=https://get.helm.sh/helm-v$HELM_VERSION-linux-amd64.tar.gz
 ARG TARGET=/helm.tar.gz
 RUN curl -fLSs "$SOURCE" -o "$TARGET"
 RUN sha256sum "$TARGET"

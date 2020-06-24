@@ -1,0 +1,19 @@
+#!/bin/bash -e
+
+appLabel=$1
+dbLabel=$2
+
+pod_name=$(kubectl get pod -l "app=$appLabel" -n "$KUBE_NAMESPACE" --sort-by '{.metadata.creationTimestamp}' -o custom-columns=:metadata.name --no-headers | tail -n 1)
+
+# Wait for DB pod to be ready
+count=0
+while [[ $(kubectl get pods -l "app=$dbLabel" -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
+  [[ $count -lt 30 ]] || exit 1
+
+  echo "waiting for pod" && sleep 1
+  count=$((count + 1))
+done
+
+# SC2016 does not apply to the quote for command pass to sh -c
+# shellcheck disable=SC2016
+kubectl exec -i -n "$KUBE_NAMESPACE" "$pod_name" -- sh -c 'psql $DATABASE_URL -c "SELECT 1;"'

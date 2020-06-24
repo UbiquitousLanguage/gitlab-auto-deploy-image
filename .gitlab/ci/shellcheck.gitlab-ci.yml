@@ -1,0 +1,15 @@
+test-shellcheck:
+  stage: test
+  image: koalaman/shellcheck-alpine:stable
+  needs: []
+  script:
+    - shellcheck src/bin/auto-deploy test/*
+
+test-shfmt:
+  stage: test
+  image:
+    name: peterdavehello/shfmt:2.6.4
+    entrypoint: ["/bin/sh", "-c"]
+  needs: []
+  script:
+    - shfmt -i 2 -ci -l -d src/bin/auto-deploy test/*

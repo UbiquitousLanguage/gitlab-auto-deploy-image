@@ -1,0 +1,249 @@
+.test-job: &test-job
+  stage: test
+  image: "$BUILD_IMAGE_NAME"
+  services:
+    - name: registry.gitlab.com/gitlab-org/cluster-integration/test-utils/k3s-gitlab-ci/releases/v0.6.1
+      alias: k3s
+      command: ["server", "--cluster-secret", "some-secret"]
+  before_script:
+    - kubectl config set-cluster k3s --server https://k3s:6443 --insecure-skip-tls-verify
+    - kubectl config set-credentials default --username=node --password=some-secret
+    - kubectl config set-context k3s --cluster=k3s --user=default
+    - kubectl config use-context k3s
+    - kubectl version
+    - kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+    - |
+      kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+    - |
+      function expected_error() {
+        echo "Expected error but exited with $?, failing build!"
+        exit 1
+      }
+
+      function failed_as_expected() {
+        echo "Failed as expected and exited with $?"
+      }
+
+test-dependencies:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - helm version --client
+    - tiller -version
+    - kubectl version --client
+
+test-kube-domain:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    KUBE_INGRESS_BASE_DOMAIN: example.com
+  script:
+    - auto-deploy check_kube_domain
+
+test-kube-domain-legacy:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    AUTO_DEVOPS_DOMAIN: example.com
+  script:
+    - auto-deploy check_kube_domain && expected_error || failed_as_expected
+
+test-kube-domain_error:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - auto-deploy check_kube_domain && expected_error || failed_as_expected
+
+test-download-chart:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - auto-deploy download_chart
+
+test-deploy-name:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    CI_ENVIRONMENT_SLUG: production
+  script:
+    - name=$(auto-deploy deploy_name "stable")
+    - |
+      if [[ $name != "production" ]]; then
+        echo "$name should equal 'production'"
+        exit 1
+      fi
+    - name=$(auto-deploy deploy_name "canary")
+    - |
+      if [[ $name != "production-canary" ]]; then
+        echo "$name should equal 'production-canary'"
+        exit 1
+      fi
+
+test-get-replicas:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    CI_ENVIRONMENT_SLUG: production
+  script:
+    - replicas=$(auto-deploy get_replicas "stable" "100")
+    - |
+      if [[ $replicas != 1 ]]; then
+        echo "$replicas should equal 1"
+        exit 1
+      fi
+
+test-get-replicas-multiple:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    CI_ENVIRONMENT_SLUG: production
+    REPLICAS: "2"
+  script:
+    - replicas=$(auto-deploy get_replicas "stable" "100")
+    - |
+      if [[ $replicas != 2 ]]; then
+        echo "$replicas should equal 2"
+        exit 1
+      fi
+
+test-get-replicas-fraction:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    CI_ENVIRONMENT_SLUG: production
+    REPLICAS: "2"
+  script:
+    - replicas=$(auto-deploy get_replicas "stable" "25")
+    - |
+      if [[ $replicas != 1 ]]; then
+        echo "$replicas should 1, (25% of 2 is 0.5, so set a floor of 1)"
+        exit 1
+      fi
+
+test-get-replicas-zero:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    CI_ENVIRONMENT_SLUG: production
+    REPLICAS: "0"
+  script:
+    - replicas=$(auto-deploy get_replicas "stable" "100")
+    - |
+      if [[ $replicas != 0 ]]; then
+        echo "$replicas should equal 0, as requested"
+        exit 1
+      fi
+
+test-ensure-namespace:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    KUBE_NAMESPACE: project-123456
+  script:
+    - auto-deploy ensure_namespace
+
+test-initialize-tiller:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    KUBE_NAMESPACE: default
+  script:
+    - auto-deploy initialize_tiller
+    - ps aufx
+    - helm ls --host "localhost:44134"
+
+test-create-secret:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    KUBE_NAMESPACE: default
+    CI_REGISTRY: example.com
+    CI_DEPLOY_USER: ci-deploy-user
+    CI_DEPLOY_PASSWORD: ci-deploy-password
+    GITLAB_USER_EMAIL: user@example.com
+    CI_PROJECT_VISIBILITY: private
+  script:
+    - auto-deploy create_secret
+    - kubectl get secret "gitlab-registry-${CI_PROJECT_PATH_SLUG}" -n $KUBE_NAMESPACE
+
+test-create-secret-public-project:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    CI_PROJECT_VISIBILITY: public
+    KUBE_NAMESPACE: default
+  script:
+    - auto-deploy create_secret
+    - kubectl get secret "gitlab-registry-${CI_PROJECT_PATH_SLUG}" -n $KUBE_NAMESPACE && expected_error || failed_as_expected
+
+test-persist-environment-url:
+  <<: *test-job
+  variables:
+    GIT_STRATEGY: none
+    CI_ENVIRONMENT_URL: review-app.example.com
+  script:
+    - auto-deploy persist_environment_url
+    - grep review-app.example.com environment_url.txt
+
+test-deploy-atomic:
+  extends: test-deploy
+  variables:
+    KUBE_INGRESS_BASE_DOMAIN: ""
+  script:
+    - auto-deploy initialize_tiller
+    - auto-deploy download_chart
+    - auto-deploy deploy && exit 1 || echo "First deployment failed as expected"
+    # second deploy should succeed
+    - export KUBE_INGRESS_BASE_DOMAIN=example.com
+    - auto-deploy deploy
+
+test-deploy-non-atomic:
+  extends: test-deploy
+  variables:
+    KUBE_INGRESS_BASE_DOMAIN: ""
+    AUTO_DEVOPS_ATOMIC_RELEASE: "false"
+  script:
+    - auto-deploy initialize_tiller
+    - auto-deploy download_chart
+    - auto-deploy deploy && exit 1 || echo "First deployment failed as expected"
+    # second deploy should also fail because the first release wasn't fully rolled back
+    - export KUBE_INGRESS_BASE_DOMAIN=example.com
+    - auto-deploy deploy && exit 1 || echo "Second release failed as expected"
+
+test-deploy-debug:
+  extends: test-deploy
+  variables:
+    AUTO_DEVOPS_DEPLOY_DEBUG: "1"
+  script:
+    - auto-deploy initialize_tiller
+    - auto-deploy download_chart
+    - auto-deploy deploy
+    - cat tiller.log
+
+test-create-application-secret:
+  <<: *test-job
+  variables:
+    KUBE_NAMESPACE: default
+    CI_ENVIRONMENT_SLUG: production
+    K8S_SECRET_CODE: 12345
+    K8S_SECRET_CODE_MULTILINE: "12345
+    NEW LINE"
+  script:
+    - auto-deploy create_application_secret "stable"
+    - kubectl get secrets -n $KUBE_NAMESPACE
+    - kubectl get secrets production-secret -n $KUBE_NAMESPACE
+    - ./test/verify-application-secret
+
+test-delete:
+  extends: test-deploy
+  script:
+    - auto-deploy initialize_tiller
+    - auto-deploy download_chart
+    - auto-deploy deploy
+    - helm get production
+    - auto-deploy delete
+    - helm get production && expected_error || failed_as_expected
+

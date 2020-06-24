@@ -1,0 +1,15 @@
+build:
+  stage: build
+  image: docker:19.03.5
+  services:
+    - docker:19.03.5-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - >-
+      docker build
+      --build-arg "HELM_VERSION=$HELM_VERSION"
+      --build-arg "KUBERNETES_VERSION=$KUBERNETES_VERSION"
+      --build-arg "GLIBC_VERSION=$GLIBC_VERSION"
+      --tag "$BUILD_IMAGE_NAME" .
+    - docker push "$BUILD_IMAGE_NAME"

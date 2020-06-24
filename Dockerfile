@@ -1,7 +1,7 @@
 ARG HELM_VERSION
 ARG KUBECTL_VERSION
 
-FROM "registry.gitlab.com/gitlab-org/cluster-integration/helm-install-image/branches/add-builds-for-helm-3:02632444149710b95a4ce0233f4f1f6242713dcc-2.16.7"
+FROM alpine:3.9
 
 # https://github.com/sgerrand/alpine-pkg-glibc
 ARG GLIBC_VERSION
@@ -15,6 +15,10 @@ RUN apk add --no-cache openssl curl tar gzip bash jq \
   && apk add glibc-${GLIBC_VERSION}.apk \
   && apk add ruby jq \
   && rm glibc-${GLIBC_VERSION}.apk \
+  && curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl \
+  && mv ./kubectl /usr/bin/kubectl \
+  && chmod +x /usr/bin/kubectl \
+  && curl -L https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash \
   && curl -sL https://sentry.io/get-cli/ | bash
 
 RUN ln -s /build/bin/* /usr/local/bin/
